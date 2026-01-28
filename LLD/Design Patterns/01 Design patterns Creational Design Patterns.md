@@ -1,4 +1,5 @@
-# Design patterns 
+# 📚 Creational Design Patterns
+
 ---
 
 ## 📖 Table of Contents
@@ -9,10 +10,11 @@
 4. [The Four Core Questions](#4-the-four-core-questions)
 5. [Singleton Pattern](#5-singleton-pattern)
 6. [Builder Pattern](#6-builder-pattern)
-7. [Factory & Prototype (Brief)](#7-factory--prototype-brief)
-8. [Static vs Non-Static](#8-static-vs-non-static)
-9. [Comparison Tables](#9-comparison-tables)
-10. [Interview Guide](#10-interview-guide)
+7. [Prototype Pattern](#7-prototype-pattern)
+8. [Factory Pattern (Brief)](#8-factory-pattern-brief)
+9. [Static vs Non-Static](#9-static-vs-non-static)
+10. [Comparison Tables](#10-comparison-tables)
+11. [Interview Guide](#11-interview-guide)
 
 ---
 
@@ -215,8 +217,9 @@ A a = new A();  // Direct creation
 **Examples:**
 - Builder → step-by-step creation with validation
 - Factory → decide which class to create based on input
+- Prototype → clone existing object
 
-**Patterns:** Factory, Builder, Abstract Factory
+**Patterns:** Factory, Builder, Abstract Factory, Prototype
 
 ---
 
@@ -1446,7 +1449,703 @@ When implementing Builder, ensure:
 
 ---
 
-## 7. Factory & Prototype (Brief)
+## 7. Prototype Pattern
+
+### 🤔 What is Prototype Pattern?
+
+**Simple Definition:**
+> Prototype Pattern creates new objects by **cloning** an existing object instead of creating from scratch.
+
+**Think of it like:** Making photocopies 📄 → Faster than writing everything again!
+
+---
+
+### 🚨 The Problem Prototype Solves
+
+#### Problem 1: Expensive Object Creation
+
+**Imagine creating this object:**
+```java
+DatabaseConnection db = new DatabaseConnection();
+db.connect("server1.com", 3306);
+db.authenticate("user", "password");
+db.loadConfiguration();
+db.initializePools(100);
+// Takes 5 seconds to create! ⏰
+```
+
+**Now you need 10 more similar connections:**
+```java
+// Creating each from scratch = 5 seconds × 10 = 50 seconds! 😱
+```
+
+**Solution with Prototype:**
+```java
+DatabaseConnection db1 = original.clone();  // Just 0.1 second! ⚡
+DatabaseConnection db2 = original.clone();
+DatabaseConnection db3 = original.clone();
+// Total: ~0.3 seconds instead of 50! 🚀
+```
+
+---
+
+#### Problem 2: Complex Object Initialization
+
+**Complex object with many steps:**
+```java
+GameCharacter hero = new GameCharacter();
+hero.setName("Warrior");
+hero.setHealth(100);
+hero.setStrength(50);
+hero.setDefense(30);
+hero.loadTextures();        // Heavy operation
+hero.loadAnimations();      // Heavy operation
+hero.loadSounds();          // Heavy operation
+hero.calculateStats();
+hero.equipDefaultGear();
+// 20+ lines of initialization code! 😰
+```
+
+**Need 100 similar warriors? Repeat this 100 times?** ❌
+
+**Solution with Prototype:**
+```java
+GameCharacter warrior1 = templateWarrior.clone();  // Done! ✅
+GameCharacter warrior2 = templateWarrior.clone();
+GameCharacter warrior3 = templateWarrior.clone();
+// Just modify what's different, e.g., name
+```
+
+---
+
+### 💡 Prototype Pattern Solution
+
+**Key Idea:**
+1. Create a **template object** (prototype) once
+2. **Clone** it whenever you need a copy
+3. Modify the clone if needed
+
+**Benefits:**
+- ✓ Much faster than creating from scratch
+- ✓ Hides complex creation logic
+- ✓ No need to know all initialization steps
+- ✓ Reduces memory if objects share data
+
+---
+
+### 🔧 How Prototype Works
+
+#### The Cloneable Interface
+
+In Java, use the `Cloneable` interface and override `clone()` method:
+
+```java
+public class MyClass implements Cloneable {
+    @Override
+    protected Object clone() throws CloneNotSupportedException {
+        return super.clone();
+    }
+}
+```
+
+---
+
+### 📝 Implementation Examples
+
+#### Example 1: Basic Prototype (Shallow Copy)
+
+```java
+public class Employee implements Cloneable {
+    private String name;
+    private int age;
+    private String department;
+
+    public Employee(String name, int age, String department) {
+        this.name = name;
+        this.age = age;
+        this.department = department;
+    }
+
+    // Clone method
+    @Override
+    public Employee clone() {
+        try {
+            return (Employee) super.clone();
+        } catch (CloneNotSupportedException e) {
+            throw new RuntimeException("Clone not supported", e);
+        }
+    }
+
+    // Getters and setters
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+    public int getAge() { return age; }
+    public String getDepartment() { return department; }
+
+    @Override
+    public String toString() {
+        return "Employee{name='" + name + "', age=" + age + 
+               ", department='" + department + "'}";
+    }
+}
+```
+
+**Usage:**
+```java
+// Create original
+Employee original = new Employee("Ali", 30, "IT");
+
+// Clone it
+Employee clone1 = original.clone();
+Employee clone2 = original.clone();
+
+// Modify clones
+clone1.setName("Sara");
+clone2.setName("Ahmed");
+
+System.out.println(original);  // Employee{name='Ali', age=30, department='IT'}
+System.out.println(clone1);    // Employee{name='Sara', age=30, department='IT'}
+System.out.println(clone2);    // Employee{name='Ahmed', age=30, department='IT'}
+
+// They are different objects
+System.out.println(original == clone1);  // false ✅
+```
+
+---
+
+#### Example 2: Game Character (Real-World)
+
+```java
+public class GameCharacter implements Cloneable {
+    private String type;        // "Warrior", "Mage", "Archer"
+    private int health;
+    private int strength;
+    private int defense;
+    private String texture;     // Image file path
+
+    public GameCharacter(String type, int health, int strength, 
+                        int defense, String texture) {
+        this.type = type;
+        this.health = health;
+        this.strength = strength;
+        this.defense = defense;
+        this.texture = texture;
+        
+        // Simulate expensive operations
+        System.out.println("Loading textures for " + type + "... (expensive!)");
+        System.out.println("Loading animations for " + type + "... (expensive!)");
+    }
+
+    @Override
+    public GameCharacter clone() {
+        try {
+            System.out.println("Cloning " + type + "... (fast!)");
+            return (GameCharacter) super.clone();
+        } catch (CloneNotSupportedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public String getType() { return type; }
+    public int getHealth() { return health; }
+    public void setHealth(int health) { this.health = health; }
+
+    @Override
+    public String toString() {
+        return type + " {health=" + health + ", strength=" + strength + 
+               ", defense=" + defense + "}";
+    }
+}
+```
+
+**Usage:**
+```java
+// Create template warrior (expensive - done once)
+System.out.println("=== Creating Template ===");
+GameCharacter warriorTemplate = new GameCharacter("Warrior", 100, 50, 30, "warrior.png");
+
+System.out.println("\n=== Creating Army via Cloning ===");
+// Create army of warriors (fast - cloning)
+GameCharacter warrior1 = warriorTemplate.clone();
+GameCharacter warrior2 = warriorTemplate.clone();
+GameCharacter warrior3 = warriorTemplate.clone();
+
+// Customize if needed
+warrior1.setHealth(90);
+warrior2.setHealth(95);
+
+System.out.println(warrior1);
+System.out.println(warrior2);
+System.out.println(warrior3);
+```
+
+**Output:**
+```
+=== Creating Template ===
+Loading textures for Warrior... (expensive!)
+Loading animations for Warrior... (expensive!)
+
+=== Creating Army via Cloning ===
+Cloning Warrior... (fast!)
+Cloning Warrior... (fast!)
+Cloning Warrior... (fast!)
+Warrior {health=90, strength=50, defense=30}
+Warrior {health=95, strength=50, defense=30}
+Warrior {health=100, strength=50, defense=30}
+```
+
+---
+
+### 🔍 Shallow Copy vs Deep Copy
+
+#### Shallow Copy (Default `clone()`)
+
+**Problem:**
+- Copies primitive types (`int`, `String`, etc.)
+- **Shares references** for objects
+
+**Example:**
+```java
+public class Person implements Cloneable {
+    private String name;
+    private Address address;  // Object reference
+    
+    @Override
+    public Person clone() {
+        return (Person) super.clone();  // Shallow copy
+    }
+}
+
+Person p1 = new Person("Ali", new Address("Street 1"));
+Person p2 = p1.clone();
+
+p2.address.setStreet("Street 2");
+
+System.out.println(p1.address);  // Street 2 ❌ (Changed!)
+System.out.println(p2.address);  // Street 2
+```
+
+**Both share the same `Address` object!**
+
+---
+
+#### Deep Copy (Manual Implementation)
+
+**Solution:** Clone nested objects too
+
+```java
+public class Person implements Cloneable {
+    private String name;
+    private Address address;
+
+    @Override
+    public Person clone() {
+        try {
+            Person cloned = (Person) super.clone();
+            // Clone the nested object too
+            cloned.address = this.address.clone();  // Deep copy
+            return cloned;
+        } catch (CloneNotSupportedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+}
+
+public class Address implements Cloneable {
+    private String street;
+
+    @Override
+    public Address clone() {
+        try {
+            return (Address) super.clone();
+        } catch (CloneNotSupportedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    
+    // Getters and setters
+}
+```
+
+**Now:**
+```java
+Person p1 = new Person("Ali", new Address("Street 1"));
+Person p2 = p1.clone();
+
+p2.address.setStreet("Street 2");
+
+System.out.println(p1.address);  // Street 1 ✅ (Unchanged!)
+System.out.println(p2.address);  // Street 2 ✅
+```
+
+---
+
+### 📊 Shallow vs Deep Copy Comparison
+
+| Feature | Shallow Copy | Deep Copy |
+|---------|-------------|-----------|
+| **Primitive types** | ✅ Copies values | ✅ Copies values |
+| **String** | ✅ Copies reference (immutable, so safe) | ✅ Copies reference |
+| **Object references** | ❌ Shares same object | ✅ Creates new object |
+| **Implementation** | `super.clone()` | Manual cloning of nested objects |
+| **Use when** | No nested objects | Has nested mutable objects |
+
+---
+
+### 🎓 Real-World Example: Document Templates
+
+```java
+public class Document implements Cloneable {
+    private String title;
+    private String content;
+    private String header;
+    private String footer;
+    private List<String> styles;
+
+    public Document(String title) {
+        this.title = title;
+        // Expensive operations
+        this.header = loadHeader();
+        this.footer = loadFooter();
+        this.styles = loadDefaultStyles();
+        System.out.println("Creating new document template (expensive)...");
+    }
+
+    private String loadHeader() {
+        // Simulate expensive DB/file operation
+        return "=== Company Header ===";
+    }
+
+    private String loadFooter() {
+        return "=== Company Footer ===";
+    }
+
+    private List<String> loadDefaultStyles() {
+        return new ArrayList<>(Arrays.asList("Bold", "Italic", "Underline"));
+    }
+
+    @Override
+    public Document clone() {
+        try {
+            System.out.println("Cloning document (fast)...");
+            Document cloned = (Document) super.clone();
+            // Deep copy for list
+            cloned.styles = new ArrayList<>(this.styles);
+            return cloned;
+        } catch (CloneNotSupportedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void setTitle(String title) { this.title = title; }
+    public void setContent(String content) { this.content = content; }
+
+    @Override
+    public String toString() {
+        return "Document{title='" + title + "', content='" + content + "'}";
+    }
+}
+```
+
+**Usage:**
+```java
+// Create template once (expensive)
+Document template = new Document("Company Template");
+
+// Create many documents by cloning (fast)
+Document doc1 = template.clone();
+doc1.setTitle("Invoice #001");
+doc1.setContent("Invoice details...");
+
+Document doc2 = template.clone();
+doc2.setTitle("Report Q1");
+doc2.setContent("Quarterly report...");
+
+Document doc3 = template.clone();
+doc3.setTitle("Letter");
+doc3.setContent("Dear customer...");
+
+System.out.println(doc1);
+System.out.println(doc2);
+System.out.println(doc3);
+```
+
+---
+
+### 🎮 Another Example: Game Enemies
+
+```java
+public class Enemy implements Cloneable {
+    private String type;
+    private int health;
+    private int damage;
+    private String aiScript;     // Complex AI behavior
+    private Sprite sprite;       // Heavy graphics object
+
+    public Enemy(String type, int health, int damage) {
+        this.type = type;
+        this.health = health;
+        this.damage = damage;
+        
+        // Expensive operations
+        this.aiScript = loadAIScript(type);
+        this.sprite = loadSprite(type);
+        System.out.println("Creating " + type + " (expensive operation)...");
+    }
+
+    private String loadAIScript(String type) {
+        // Simulate loading from file
+        return type + "_ai_script.lua";
+    }
+
+    private Sprite loadSprite(String type) {
+        // Simulate loading heavy texture
+        return new Sprite(type + ".png");
+    }
+
+    @Override
+    public Enemy clone() {
+        try {
+            System.out.println("Cloning " + type + " (instant)...");
+            return (Enemy) super.clone();
+        } catch (CloneNotSupportedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void setHealth(int health) { this.health = health; }
+
+    @Override
+    public String toString() {
+        return type + " {health=" + health + ", damage=" + damage + "}";
+    }
+}
+
+class Sprite {
+    String filename;
+    Sprite(String filename) { this.filename = filename; }
+}
+```
+
+**Usage:**
+```java
+// Create enemy templates (expensive - done once at game start)
+Enemy zombieTemplate = new Enemy("Zombie", 50, 10);
+Enemy orcTemplate = new Enemy("Orc", 100, 20);
+
+// Spawn enemies during gameplay (fast - cloning)
+Enemy zombie1 = zombieTemplate.clone();
+Enemy zombie2 = zombieTemplate.clone();
+Enemy zombie3 = zombieTemplate.clone();
+
+Enemy orc1 = orcTemplate.clone();
+Enemy orc2 = orcTemplate.clone();
+
+// Each can have different health after damage
+zombie1.setHealth(30);
+orc1.setHealth(75);
+```
+
+---
+
+### 🎯 When to Use Prototype Pattern?
+
+#### ✅ Use Prototype When:
+
+- Object creation is **expensive** (time/resources)
+- Objects are **similar** with minor differences
+- Need to **avoid complex initialization** code
+- Creating many **instances of similar objects**
+- **Performance** is critical
+- Want to hide **complex creation logic**
+
+**Common Use Cases:**
+- Game characters/enemies/items
+- Document templates
+- Database connection pools
+- UI component templates
+- Configuration objects
+- Cache entries
+
+---
+
+#### ❌ Don't Use When:
+
+- Object creation is **cheap/simple**
+- Objects are **very different** from each other
+- **No repeated patterns** in object creation
+- Deep copying is **too complex** to implement
+
+**Example when NOT to use:**
+```java
+// Simple object - just use constructor
+class Point {
+    int x, y;
+    Point(int x, int y) { this.x = x; this.y = y; }
+}
+
+Point p1 = new Point(10, 20);  // ✅ Simple constructor is better
+Point p2 = new Point(30, 40);
+```
+
+---
+
+### ⚠️ Important Considerations
+
+#### 1. Cloneable Interface
+
+```java
+public class MyClass implements Cloneable {  // Must implement
+    @Override
+    public MyClass clone() {
+        try {
+            return (MyClass) super.clone();
+        } catch (CloneNotSupportedException e) {
+            throw new RuntimeException(e);  // Handle exception
+        }
+    }
+}
+```
+
+---
+
+#### 2. Deep Copy for Complex Objects
+
+**Always deep copy mutable nested objects:**
+```java
+@Override
+public Person clone() {
+    Person cloned = (Person) super.clone();
+    cloned.address = this.address.clone();        // Deep copy
+    cloned.skills = new ArrayList<>(this.skills); // Deep copy
+    return cloned;
+}
+```
+
+---
+
+#### 3. Prototype Registry (Advanced)
+
+**For managing multiple prototypes:**
+```java
+public class PrototypeRegistry {
+    private Map<String, GameCharacter> prototypes = new HashMap<>();
+
+    public void registerPrototype(String key, GameCharacter prototype) {
+        prototypes.put(key, prototype);
+    }
+
+    public GameCharacter getPrototype(String key) {
+        GameCharacter prototype = prototypes.get(key);
+        return prototype != null ? prototype.clone() : null;
+    }
+}
+```
+
+**Usage:**
+```java
+PrototypeRegistry registry = new PrototypeRegistry();
+
+// Register templates
+registry.registerPrototype("warrior", new GameCharacter("Warrior", 100, 50, 30, "w.png"));
+registry.registerPrototype("mage", new GameCharacter("Mage", 70, 80, 20, "m.png"));
+
+// Create instances
+GameCharacter w1 = registry.getPrototype("warrior");
+GameCharacter w2 = registry.getPrototype("warrior");
+GameCharacter m1 = registry.getPrototype("mage");
+```
+
+---
+
+### 📊 Prototype vs Other Patterns
+
+| Feature | Prototype | Factory | Builder |
+|---------|-----------|---------|---------|
+| **Purpose** | Clone existing object | Create new object | Build complex object step-by-step |
+| **Creation** | Copy from prototype | Factory method | Builder methods |
+| **Performance** | ⚡ Fast (cloning) | Normal | Normal |
+| **Complexity** | Low | Medium | High |
+| **Use Case** | Many similar objects | Different types | Complex construction |
+| **When** | Objects are expensive to create | Need polymorphism | Many optional fields |
+
+---
+
+### 🔄 How Prototype Pattern Works
+
+**Step-by-Step Flow:**
+
+```
+Step 1: Create Template Object (Prototype)
+├─> GameCharacter template = new GameCharacter(...)
+│   ├─> Load textures (expensive)
+│   ├─> Load animations (expensive)
+│   └─> Initialize complex state
+│
+Step 2: Clone When Needed
+├─> GameCharacter clone1 = template.clone()
+│   └─> Memory copy (fast!) ⚡
+│
+Step 3: Customize Clone
+├─> clone1.setHealth(90)
+└─> clone1.setName("Hero1")
+```
+
+**Visual Flow:**
+```
+┌─────────────────────────────────┐
+│  Template Object (Created Once) │
+│  ┌─────────────────────────┐    │
+│  │ GameCharacter           │    │
+│  │ - type: "Warrior"       │    │
+│  │ - health: 100           │    │
+│  │ - textures: [loaded]    │    │
+│  │ - animations: [loaded]  │    │
+│  └─────────────────────────┘    │
+└────────────┬────────────────────┘
+             │
+             │ clone()  ⚡ (fast)
+             ↓
+┌─────────────────────────────────┐
+│     Cloned Objects              │
+├─────────────────────────────────┤
+│  Clone 1  │  Clone 2  │ Clone 3 │
+│  warrior1 │  warrior2 │ warrior3│
+│  health:90│ health:95 │health:100│
+└─────────────────────────────────┘
+```
+
+---
+
+### 🧠 Memory Tricks
+
+**Prototype = Xerox Machine** 📠
+- Create master copy once
+- Make photocopies when needed
+- Each copy can be modified
+
+**Think:**
+> "Why write the same letter 100 times? Write once, photocopy 100 times!"
+
+---
+
+### 🎯 Interview Answers
+
+**Q: What is Prototype Pattern?**
+> "Prototype Pattern creates new objects by cloning an existing object rather than creating from scratch. It's useful when object creation is expensive or complex."
+
+**Q: When would you use Prototype Pattern?**
+> "Use Prototype when object creation is expensive, you need many similar objects, or you want to hide complex initialization. Common examples include game characters, document templates, and database connections."
+
+**Q: What's the difference between Shallow and Deep Copy?**
+> "Shallow copy copies primitive values but shares references to nested objects. Deep copy creates new instances of nested objects too. Use deep copy when nested objects are mutable to avoid unintended sharing."
+
+**Q: How is Prototype different from Factory?**
+> "Factory creates new objects from scratch and decides which class to instantiate, while Prototype clones existing objects for better performance. Factory focuses on 'what to create', Prototype focuses on 'how fast to create'."
+
+---
+
+## 8. Factory Pattern (Brief)
 
 ### 🏭 Factory Pattern
 
@@ -1468,26 +2167,7 @@ When implementing Builder, ensure:
 
 ---
 
-### 📋 Prototype Pattern
-
-#### Key Idea
-**Create object by cloning an existing object**
-
-- Faster than creating from scratch
-- Useful for heavy/complex objects
-
-#### Examples
-- Game characters (clone template)
-- Configuration templates
-- Document templates
-
-#### What it Solves
-- How many objects? → Many copies
-- How to create efficiently? → Clone existing
-
----
-
-## 8. Static vs Non-Static
+## 9. Static vs Non-Static
 
 ### 🔧 Important Java Concept
 
@@ -1582,7 +2262,7 @@ class Singleton {
 
 ---
 
-## 9. Comparison Tables
+## 10. Comparison Tables
 
 ### 📊 Creational Patterns at a Glance
 
@@ -1630,19 +2310,33 @@ class Singleton {
 
 ---
 
-### 📊 Builder vs Factory
+### 📊 Prototype vs Other Patterns
 
-| Feature | Factory | Builder |
-|---------|---------|---------|
-| **Purpose** | Creates object in one step | Step-by-step construction |
-| **Focus** | Hides creation logic | Controls construction process |
-| **Best For** | Polymorphism, multiple types | Complex objects, many fields |
-| **Flexibility** | Less flexible | More flexible |
-| **Use Case** | Different types of objects | Same type, different configurations |
+| Feature | Prototype | Factory | Builder |
+|---------|-----------|---------|---------|
+| **Purpose** | Clone existing object | Create new object | Build complex object |
+| **Creation** | Copy from prototype | Factory method | Step-by-step |
+| **Performance** | ⚡ Fast (cloning) | Normal | Normal |
+| **Complexity** | Low | Medium | High |
+| **Use Case** | Many similar objects | Different types | Complex construction |
+| **Best For** | Expensive objects | Polymorphism | Many optional fields |
 
 ---
 
-## 10. Interview Guide
+### 📊 Shallow vs Deep Copy
+
+| Feature | Shallow Copy | Deep Copy |
+|---------|-------------|-----------|
+| **Primitive types** | ✅ Copies values | ✅ Copies values |
+| **String** | ✅ Copies reference | ✅ Copies reference |
+| **Object references** | ❌ Shares same object | ✅ Creates new object |
+| **Implementation** | `super.clone()` | Manual cloning |
+| **Performance** | ⚡ Faster | Slower |
+| **Use when** | No nested objects | Has nested mutable objects |
+
+---
+
+## 11. Interview Guide
 
 ### 🎯 One-Line Definitions
 
@@ -1676,6 +2370,11 @@ class Singleton {
 
 ---
 
+#### Prototype Pattern
+> "Prototype Pattern creates new objects by cloning an existing object rather than creating from scratch, which is useful when object creation is expensive or complex."
+
+---
+
 #### Static vs Non-Static
 > "Static methods cannot access non-static members directly. In Singleton, the instance variable is static, so the static getInstance() method can safely access and return it."
 
@@ -1687,6 +2386,7 @@ class Singleton {
 |---------|-------------|
 | **Singleton** | One object, one responsibility, one truth |
 | **Builder** | Constructor = dump everything at once<br>Builder = add one by one, then build |
+| **Prototype** | Xerox machine 📠 - create master, photocopy when needed |
 | **Static** | Static talks only to static — unless you bring an object |
 
 ---
@@ -1738,6 +2438,16 @@ public class User {
 }
 ```
 👉 Lombok generates Builder code automatically
+
+---
+
+#### Prototype Scope in Spring
+```java
+@Component
+@Scope("prototype")
+public class ShoppingCart {}
+```
+👉 Spring creates new instance each time (like Prototype pattern)
 
 ---
 
@@ -1799,21 +2509,45 @@ User user = User.builder()
 
 ---
 
-#### Q6: What's the difference between Singleton and Prototype?
+#### Q6: What is Prototype Pattern and when would you use it?
 
 **Answer:**
-> "Singleton ensures only one instance exists throughout the application, while Prototype creates new objects by cloning an existing object. Singleton answers 'how many objects' with 'one', while Prototype creates multiple copies efficiently."
+> "Prototype Pattern creates new objects by cloning an existing object rather than creating from scratch. It's used when object creation is expensive (time or resources), when you need many similar objects, or when you want to hide complex initialization logic. Common examples include game characters, document templates, and database connection pools."
 
 ---
 
-#### Q7: Can static methods access non-static members?
+#### Q7: What's the difference between Shallow Copy and Deep Copy?
+
+**Answer:**
+> "Shallow copy copies primitive values but shares references to nested objects, meaning changes to nested objects in the clone affect the original. Deep copy creates new instances of nested objects too, ensuring complete independence. Use shallow copy when objects have no nested mutable objects; use deep copy when they do."
+
+**Example:**
+```java
+// Shallow copy - shares Address reference
+Person clone = (Person) super.clone();
+
+// Deep copy - creates new Address
+Person clone = (Person) super.clone();
+clone.address = this.address.clone();
+```
+
+---
+
+#### Q8: How is Prototype different from Factory Pattern?
+
+**Answer:**
+> "Factory creates new objects from scratch and decides which class to instantiate based on input, while Prototype clones existing objects for better performance. Factory focuses on 'what type to create' (polymorphism), while Prototype focuses on 'how fast to create' (performance). Use Factory when you need different types of objects; use Prototype when you need many similar objects quickly."
+
+---
+
+#### Q9: Can static methods access non-static members?
 
 **Answer:**
 > "Static methods cannot access non-static members directly because static belongs to the class while non-static belongs to objects. However, they can access non-static members through an object reference. In Singleton, the instance variable is static, so the static getInstance() method can safely access it."
 
 ---
 
-#### Q8: Why should the Builder product class be immutable?
+#### Q10: Why should the Builder product class be immutable?
 
 **Answer:**
 > "Builder creates the object; immutability protects it after creation. This ensures:
@@ -1854,6 +2588,23 @@ User user = User.builder()
 
 ---
 
+#### Prototype Use Cases
+
+**✅ Use Prototype When:**
+- Object creation is expensive (time/resources)
+- Objects are similar with minor differences
+- Need to avoid complex initialization
+- Creating many instances of similar objects
+- Performance is critical
+
+**❌ Don't Use When:**
+- Object creation is cheap/simple
+- Objects are very different
+- No repeated patterns
+- Deep copying is too complex
+
+---
+
 ## 📚 Summary
 
 ### 🎯 Main Takeaways
@@ -1867,7 +2618,7 @@ User user = User.builder()
 ### 🔑 Four Core Questions
 
 1. **When** → Singleton, Lazy Init
-2. **How** → Builder, Factory
+2. **How** → Builder, Factory, Prototype
 3. **Where** → Factory, Dependency Injection
 4. **How Many** → Singleton, Prototype
 
@@ -1877,10 +2628,12 @@ User user = User.builder()
 
 - **Use Enum Singleton** for thread-safe, reflection-safe implementation
 - **Use Builder** for objects with many optional fields
+- **Use Prototype** when object creation is expensive
 - **Avoid `new`** in client code when possible
 - **Let frameworks** (like Spring) manage object creation
 - **Make objects immutable** when using Builder
 - **Validate in one place** (Builder's `build()` method)
+- **Use deep copy** when cloning objects with nested mutable objects
 
 ---
 
@@ -1892,8 +2645,26 @@ User user = User.builder()
 
 > **Builder creates; Immutability protects**
 
+> **Prototype = create once, clone many**
+
 ---
 
+## 🚀 Next Steps
+
+### To Master Creational Design Patterns:
+
+1. ✅ Practice implementing all Singleton types
+2. ✅ Practice implementing Builder pattern
+3. ✅ Practice implementing Prototype with shallow and deep copy
+4. ✅ Study Factory pattern in depth
+5. ✅ Learn Abstract Factory
+6. ✅ Map each pattern to SOLID principles
+7. ✅ Practice with real-world examples
+8. ✅ Study Spring Boot's use of these patterns
+9. ✅ Convert existing classes to use patterns
+10. ✅ Understand when NOT to use patterns
+
+---
 
 ## 📖 Final Words
 
